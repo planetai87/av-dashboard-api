@@ -292,7 +292,7 @@
 
         // --- RENDER FUNCTIONS ---
         
-        function renderDashboard() {
+                function renderDashboard() {
             // Progress charts
             const teamProgress = {};
             const teams = [...new Set(db.setupTasks.map(t => t.team))];
@@ -337,7 +337,9 @@
                 delayedTasksList.innerHTML = `<p class="text-slate-500">지연된 작업이 없습니다.</p>`;
             }
             
-             const today = new Date();
+            // --- ▼▼▼ 이 부분이 수정되었습니다 ▼▼▼ ---
+            // Determine which day's summary to show
+            const today = new Date();
             today.setHours(0, 0, 0, 0); // 시간 부분을 제거하여 날짜만 비교
 
             const competitionDates = ["2025-07-04", "2025-07-05", "2025-07-06"];
@@ -372,14 +374,15 @@
                 document.getElementById('avg-db-summary').textContent = `${avgDb.toFixed(1)} dB`;
                 document.getElementById('db-alert-summary').textContent = `${alertCount} 곳`;
             }
+
             // On Duty Summary
             const onDutyList = document.getElementById('on-duty-list');
             if (db.operationSchedule.length > 0) {
-                const today = new Date().toISOString().split('T')[0];
-                const currentDaySchedule = db.operationSchedule.filter(s => s.date === today);
-                const currentDuty = currentDaySchedule.length > 0 ? currentDaySchedule[0] : db.operationSchedule[0];
+                // 위에서 계산된 dateToShowStr를 사용하도록 수정
+                const currentDaySchedule = db.operationSchedule.filter(s => s.date === dateToShowStr);
+                const currentDuty = currentDaySchedule.length > 0 ? currentDaySchedule[0] : db.operationSchedule[0]; 
                 
-                document.getElementById('on-duty-title').textContent = `현재 운영 담당자 (${currentDuty.date}, ${currentDuty.time})`;
+                document.getElementById('on-duty-title').textContent = `운영 담당자 (${currentDuty.date})`;
                 
                 onDutyList.innerHTML = `
                     <div><p class="font-semibold text-slate-700">오디오</p><p class="text-slate-500">${currentDuty.audio}</p></div>
@@ -388,7 +391,9 @@
                     <div><p class="font-semibold text-slate-700">IT</p><p class="text-slate-500">${currentDuty.it}</p></div>
                 `;
             }
+            // --- ▲▲▲ 여기까지 수정되었습니다 ▲▲▲ ---
         }
+
         
         function renderDonutChart(canvasId, label, completed, total) {
             const ctx = document.getElementById(canvasId).getContext('2d');
