@@ -294,7 +294,7 @@
 
         // --- RENDER FUNCTIONS ---
         
-        function renderDashboard() {
+                function renderDashboard() {
             // Progress charts
             const teamProgress = {};
             const teams = [...new Set(db.setupTasks.map(t => t.team))];
@@ -339,9 +339,10 @@
                 delayedTasksList.innerHTML = `<p class="text-slate-500">지연된 작업이 없습니다.</p>`;
             }
             
+            // --- ▼▼▼ 이 부분이 수정되었습니다 ▼▼▼ ---
             // Determine which day's summary to show
             const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            today.setHours(0, 0, 0, 0); 
 
             const competitionDates = ["2025-07-04", "2025-07-05", "2025-07-06"];
             const competitionStartDate = new Date(competitionDates[0]);
@@ -349,10 +350,10 @@
             let dateToShowStr;
             let dayToDisplay;
 
-            const todayStr = today.toISOString().split('T')[0];
+            const todayStr = new Date().toISOString().split('T')[0]; // Use current date for filtering
             const dayIndex = competitionDates.indexOf(todayStr);
 
-            if (today < competitionStartDate) {
+            if (new Date() < competitionStartDate) {
                 dateToShowStr = competitionDates[0];
                 dayToDisplay = 1;
             } else if (dayIndex !== -1) {
@@ -377,7 +378,26 @@
             const onDutyList = document.getElementById('on-duty-list');
             if (db.operationSchedule.length > 0) {
                 const currentDaySchedule = db.operationSchedule.filter(s => s.date === dateToShowStr);
-                const currentDuty = currentDaySchedule.length > 0 ? currentDaySchedule[0] : db.operationSchedule[0]; 
+                let currentDuty = null;
+                
+                if (currentDaySchedule.length > 0) {
+                    const currentHour = new Date().getHours();
+                    // Find the current time slot
+                    for (const slot of currentDaySchedule) {
+                        const [startHour, endHour] = slot.time.split('-').map(t => parseInt(t.trim().split(':')[0]));
+                        if (currentHour >= startHour && currentHour < endHour) {
+                            currentDuty = slot;
+                            break;
+                        }
+                    }
+                    // If after hours, show the last schedule of the day. If before hours, show the first.
+                    if (!currentDuty) {
+                         currentDuty = currentDaySchedule[0];
+                    }
+                } else {
+                    // Fallback if no schedule for the day
+                    currentDuty = db.operationSchedule[0];
+                }
                 
                 document.getElementById('on-duty-title').textContent = `운영 담당자 (${currentDuty.date})`;
                 
@@ -388,6 +408,7 @@
                     <div><p class="font-semibold text-slate-700">IT</p><p class="text-slate-500">${currentDuty.it}</p></div>
                 `;
             }
+             // --- ▲▲▲ 여기까지 수정되었습니다 ▲▲▲ ---
         }
         
         function renderDonutChart(canvasId, label, completed, total) {
