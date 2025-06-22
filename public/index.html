@@ -632,6 +632,24 @@
                                         font: { size: 10 },
                                         color: 'rgba(22, 101, 52, 0.7)'
                                     }
+                                },
+                                 // --- 85데시벨 경고 기준선 (수정된 부분) ---
+                                criticalLine: {
+                                    type: 'box',
+                                    yMin: 85, // yValue 대신 yMin 사용
+                                    yMax: 85, // yValue 대신 yMax 사용
+                                    scaleID: 'y',
+                                    borderColor: 'rgb(239, 68, 68)',
+                                    borderWidth: 2,
+                                    borderDash: [6, 6],
+                                    label: {
+                                        content: '경고 기준',
+                                        display: true,
+                                        position: 'end',
+                                        font: { weight: 'bold' },
+                                        color: 'rgb(239, 68, 68)',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                                    }
                                 }
                             }
                         }
