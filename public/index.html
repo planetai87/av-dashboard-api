@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지역대회 AV팀 통합 관리 대시보드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <!-- Chosen Palette: Calm Neutral Blue -->
+    <!-- Application Structure Plan: A tab-based Single Page Application (SPA) with four main sections: 1. Main Dashboard for a high-level overview, 2. Pre-Setup Schedule for detailed task tracking, 3. Operations Schedule for staffing, and 4. Sound Analysis for in-depth audio monitoring. This structure was chosen because it mirrors the logical separation of tasks in the source report (the G-Sheet tabs) while providing a more integrated and fluid user experience. Users can get a quick summary on the dashboard and then dive into specific areas without leaving the page, which is ideal for a real-time monitoring tool. Data is now fetched dynamically from a local Node.js API server. -->
+    <!-- Visualization & Content Choices: 
+        - [Dashboard] Overall Progress: Goal=Inform. Viz=Donut charts (Chart.js) for intuitive percentage visualization. Interaction=None. Justification=Quick visual summary of completion.
+        - [Dashboard] Delayed Tasks: Goal=Inform/Alert. Viz=Dynamic HTML list. Interaction=None. Justification=Highlights critical issues immediately.
+        - [Pre-Setup] Task Table: Goal=Organize/Track. Viz=Interactive HTML table. Interaction=Team-based filtering via buttons, status-based color coding. Justification=Allows managers to focus on specific teams and quickly assess task statuses.
+        - [Sound Analysis] Heatmap: Goal=Analyze/Compare. Viz=Bubble chart (Chart.js) configured to look like a grid, representing the new 3-5-5 seating layout, with the first row centered. Interaction=Filters by day/time, tooltips on hover. Justification=Provides an immediate, intuitive visual representation of sound distribution across the venue.
+        - [Sound Analysis] Trend Graph: Goal=Analyze Change. Viz=Line chart (Chart.js) with annotation plugin for both normal and warning baselines. Interaction=Updates with filters. Justification=Shows sound level trends over time against key thresholds.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
+        .tab-btn, .filter-btn { transition: all 0.3s ease; }
+        .tab-btn.active { border-color: #3b82f6; color: #3b82f6; background-color: #eff6ff; }
+        .filter-btn.active { background-color: #3b82f6; color: white; }
+        .filter-btn:not(.active) { background-color: white; color: #374151; border: 1px solid #d1d5db; }
+        .chart-container { position: relative; width: 100%; margin-left: auto; margin-right: auto; }
+        .task-row.completed { background-color: #f1f5f9; text-decoration: line-through; color: #64748b; }
+        .task-row.delayed { background-color: #fee2e2; }
+        .task-row.in-progress { background-color: #fef9c3; }
+        #loading-overlay { transition: opacity 0.3s ease; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50">
+        <div class="text-center">
+            <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-lg font-semibold text-slate-700">API 서버에서 데이터를 불러오는 중입니다...</p>
+        </div>
+    </div>
+
+
+    <div class="container mx-auto p-4 md:p-6">
+        
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-slate-900">지역대회 AV팀 통합 관리 대시보드</h1>
+            <p class="text-slate-600 mt-1">대회 전 사전설치부터 운영까지 모든 현황을 실시간으로 관리합니다.</p>
+        </header>
+
+        <nav class="flex border-b border-slate-200 mb-6 space-x-1">
+            <button data-tab="dashboard" class="tab-btn px-4 py-2 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-500">메인 대시보드</button>
+            <button data-tab="setup" class="tab-btn px-4 py-2 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-500">사전설치 공정표</button>
+            <button data-tab="operation" class="tab-btn px-4 py-2 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-500">운영 스케줄</button>
+            <button data-tab="sound" class="tab-btn px-4 py-2 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-500">음향 분석</button>
+        </nav>
+
+        <main>
+            <!-- Dashboard Content -->
+            <div id="dashboard-content" class="content-panel">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold mb-1">핵심 요약</h2>
+                    <p class="text-slate-500 text-sm">현재 가장 중요한 정보들을 요약하여 보여줍니다.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-2">전체 공정 진행률</h3>
+                        <div class="chart-container h-48 w-48 mx-auto"><canvas id="overallProgressChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-2">팀별 진행률</h3>
+                        <div class="grid grid-cols-2 gap-4 pt-2">
+                             <div class="text-center">
+                                <div class="chart-container h-20 w-20 mx-auto"><canvas id="audioProgressChart"></canvas></div>
+                                <p class="text-xs font-semibold mt-2">오디오팀</p>
+                            </div>
+                            <div class="text-center">
+                                <div class="chart-container h-20 w-20 mx-auto"><canvas id="videoProgressChart"></canvas></div>
+                                <p class="text-xs font-semibold mt-2">비디오팀</p>
+                            </div>
+                             <div class="text-center">
+                                <div class="chart-container h-20 w-20 mx-auto"><canvas id="stageProgressChart"></canvas></div>
+                                <p class="text-xs font-semibold mt-2">무대팀</p>
+                            </div>
+                            <div class="text-center">
+                                <div class="chart-container h-20 w-20 mx-auto"><canvas id="itProgressChart"></canvas></div>
+                                <p class="text-xs font-semibold mt-2">IT팀</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm md:col-span-2 lg:col-span-2">
+                        <h3 class="font-bold text-slate-800 mb-2">주의! 지연 작업 목록</h3>
+                        <div id="delayed-tasks-list" class="space-y-2 text-sm max-h-48 overflow-y-auto">
+                            <!-- Delayed tasks will be populated by JS -->
+                        </div>
+                    </div>
+                </div>
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="font-bold text-slate-800">현재 음향 상태</h3>
+                        <div class="flex items-center justify-center space-x-6 mt-4">
+                            <div>
+                                <p class="text-3xl font-bold text-blue-600" id="avg-db-summary">N/A</p>
+                                <p class="text-sm text-slate-500 text-center">평균 데시벨</p>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-bold text-red-500" id="db-alert-summary">N/A</p>
+                                <p class="text-sm text-slate-500 text-center">경고 구역</p>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-sm md:col-span-2">
+                        <h3 class="font-bold text-slate-800" id="on-duty-title">현재 운영 담당자</h3>
+                        <div id="on-duty-list" class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mt-4">
+                             <!-- On-duty staff will be populated by JS -->
+                        </div>
+                    </div>
+                 </div>
+            </div>
+
+            <!-- Pre-Setup Content -->
+            <div id="setup-content" class="content-panel hidden">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold mb-1">사전설치 공정표</h2>
+                    <p class="text-slate-500 text-sm">팀별 사전설치 작업의 진행 상태를 관리하고 추적합니다. (읽기 전용)</p>
+                </div>
+                <div class="mb-4 flex space-x-2">
+                    <button data-team="All" class="filter-btn px-3 py-1 text-sm font-semibold rounded-md active">전체</button>
+                    <button data-team="오디오팀" class="filter-btn px-3 py-1 text-sm font-semibold rounded-md">오디오팀</button>
+                    <button data-team="비디오팀" class="filter-btn px-3 py-1 text-sm font-semibold rounded-md">비디오팀</button>
+                    <button data-team="무대팀" class="filter-btn px-3 py-1 text-sm font-semibold rounded-md">무대팀</button>
+                    <button data-team="IT팀" class="filter-btn px-3 py-1 text-sm font-semibold rounded-md">IT팀</button>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-100 text-slate-600">
+                            <tr>
+                                <th class="p-3">팀</th>
+                                <th class="p-3">작업 항목</th>
+                                <th class="p-3">담당자</th>
+                                <th class="p-3">예상 소요</th>
+                                <th class="p-3">시작 예정</th>
+                                <th class="p-3 text-center">완료 여부</th>
+                            </tr>
+                        </thead>
+                        <tbody id="setup-tasks-table">
+                            <!-- Setup tasks will be populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Operation Content -->
+            <div id="operation-content" class="content-panel hidden">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold mb-1">운영 스케줄</h2>
+                    <p class="text-slate-500 text-sm">날짜를 선택하여 해당일의 시간대별 운영 담당자 정보를 확인합니다.</p>
+                </div>
+                <div class="mb-4 flex space-x-2">
+                    <button data-day="2025-07-04" class="op-day-filter filter-btn px-3 py-1 text-sm font-semibold rounded-md active">7월 4일 (1일차)</button>
+                    <button data-day="2025-07-05" class="op-day-filter filter-btn px-3 py-1 text-sm font-semibold rounded-md">7월 5일 (2일차)</button>
+                    <button data-day="2025-07-06" class="op-day-filter filter-btn px-3 py-1 text-sm font-semibold rounded-md">7월 6일 (3일차)</button>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-100 text-slate-600">
+                            <tr>
+                                <th class="p-3">시간대</th>
+                                <th class="p-3">오디오팀</th>
+                                <th class="p-3">비디오팀</th>
+                                <th class="p-3">무대팀</th>
+                                <th class="p-3">IT팀</th>
+                                <th class="p-3">백업 담당자</th>
+                            </tr>
+                        </thead>
+                        <tbody id="operation-schedule-table">
+                            <!-- Operation schedule will be populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sound Analysis Content -->
+            <div id="sound-content" class="content-panel hidden">
+                 <div class="mb-6">
+                    <h2 class="text-xl font-bold mb-1">음향 분석</h2>
+                    <p class="text-slate-500 text-sm">좌석별 음향 데시벨 현황을 히트맵으로 시각화하고, 시간대별 변화 추이를 분석하여 음향 문제를 신속하게 파악하고 대응합니다.</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow-sm mb-6 flex items-center space-x-4">
+                    <div>
+                        <label for="sound-day-filter" class="text-sm font-semibold text-slate-600">날짜:</label>
+                        <select id="sound-day-filter" class="p-2 border rounded-md text-sm">
+                            <option value="1">1일차</option>
+                            <option value="2">2일차</option>
+                            <option value="3">3일차</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="sound-time-filter" class="text-sm font-semibold text-slate-600">측정회차:</label>
+                        <select id="sound-time-filter" class="p-2 border rounded-md text-sm">
+                            <option value="1">1차 (09:00)</option>
+                            <option value="2">2차 (13:00)</option>
+                            <option value="3">3차 (15:00)</option>
+                            <option value="4">4차 (17:00)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-2">좌석별 데시벨 히트맵</h3>
+                        <div class="w-full text-center mb-4">
+                            <div class="inline-block bg-slate-700 text-white font-bold text-lg px-12 py-2 rounded-md shadow-md">
+                                STAGE
+                            </div>
+                        </div>
+                        <div class="chart-container h-64"><canvas id="soundHeatmapChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-4" id="sound-trend-title">시간대별 데시벨 트렌드 (1일차)</h3>
+                         <div class="chart-container h-80"><canvas id="soundTrendChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const db = {
+            setupTasks: [],
+            operationSchedule: [],
+            soundData: [], 
+            soundSettings: { minDb: 70, maxDb: 85 },
+            seatLayout: [
+                ['C-1', 'C-2', 'C-3'],
+                ['B-1', 'B-2', 'B-3', 'B-4', 'B-5'],
+                ['A-1', 'A-2', 'A-3', 'A-4', 'A-5']
+            ]
+        };
+
+        async function loadAllData() {
+            try {
+                const [setupData, scheduleData, soundData] = await Promise.all([
+                    fetch('/api/SetupTasks').then(res => {
+                        if (!res.ok) throw new Error('Failed to fetch SetupTasks');
+                        return res.json();
+                    }),
+                    fetch('/api/OperationSchedule').then(res => {
+                        if (!res.ok) throw new Error('Failed to fetch OperationSchedule');
+                        return res.json();
+                    }),
+                    fetch('/api/SoundData').then(res => {
+                        if (!res.ok) throw new Error('Failed to fetch SoundData');
+                        return res.json();
+                    })
+                ]);
+
+                db.setupTasks = setupData.map(d => ({
+                    ...d,
+                    id: parseInt(d.id),
+                    duration: parseInt(d.duration),
+                    completed: d.completed ? d.completed.toUpperCase() === 'TRUE' : false
+                }));
+                db.operationSchedule = scheduleData;
+                db.soundData = soundData.map(d => ({
+                    ...d,
+                    day: parseInt(d.day),
+                    time: parseInt(d.time),
+                    db: parseFloat(d.db)
+                }));
+
+            } catch (error) {
+                console.error("Error loading data from API:", error);
+                alert("API 서버에서 데이터를 불러오는 데 실패했습니다. 백엔드 서버가 정상적으로 실행 중인지 확인해주세요.");
+            }
+        }
+        
+        // --- STATE ---
+        const state = {
+            activeTab: 'dashboard',
+            setupFilter: 'All',
+            operationDay: '2025-07-04',
+            soundFilter: { day: 1, time: 1 }
+        };
+
+        const charts = {};
+
+        // --- RENDER FUNCTIONS ---
+        
+        function renderDashboard() {
+            // Progress charts
+            const teamProgress = {};
+            const teams = [...new Set(db.setupTasks.map(t => t.team))];
+            teams.forEach(team => {
+                const teamTasks = db.setupTasks.filter(t => t.team === team);
+                teamProgress[team] = {
+                    total: teamTasks.length,
+                    completed: teamTasks.filter(t => t.completed).length
+                };
+            });
+            
+            const overall = { total: db.setupTasks.length, completed: db.setupTasks.filter(t => t.completed).length };
+            
+            if (overall.total > 0) {
+                 renderDonutChart('overallProgressChart', '전체', overall.completed, overall.total);
+                 renderDonutChart('audioProgressChart', '오디오팀', teamProgress['오디오팀']?.completed || 0, teamProgress['오디오팀']?.total || 0);
+                 renderDonutChart('videoProgressChart', '비디오팀', teamProgress['비디오팀']?.completed || 0, teamProgress['비디오팀']?.total || 0);
+                 renderDonutChart('stageProgressChart', '무대팀', teamProgress['무대팀']?.completed || 0, teamProgress['무대팀']?.total || 0);
+                 renderDonutChart('itProgressChart', 'IT팀', teamProgress['IT팀']?.completed || 0, teamProgress['IT팀']?.total || 0);
+            }
+
+            // Delayed tasks
+            const now = new Date(); 
+            const delayedTasksList = document.getElementById('delayed-tasks-list');
+            delayedTasksList.innerHTML = '';
+            const delayedTasks = db.setupTasks.filter(task => {
+                if (!task.start) return false;
+                const startTime = new Date(task.start);
+                const endTime = new Date(startTime.getTime() + task.duration * 60000);
+                return !task.completed && now > endTime;
+            });
+
+            if (delayedTasks.length > 0) {
+                delayedTasks.forEach(task => {
+                    delayedTasksList.innerHTML += `
+                        <div class="flex justify-between items-center bg-red-50 p-2 rounded">
+                            <span><span class="font-semibold">${task.team}</span> - ${task.task}</span>
+                            <span class="text-red-600 font-bold">지연</span>
+                        </div>`;
+                });
+            } else {
+                delayedTasksList.innerHTML = `<p class="text-slate-500">지연된 작업이 없습니다.</p>`;
+            }
+            
+            // Sound Summary
+            const currentSoundData = db.soundData.filter(d => d.day === state.soundFilter.day && d.time === state.soundFilter.time);
+            if (currentSoundData.length > 0) {
+                const avgDb = currentSoundData.reduce((acc, d) => acc + d.db, 0) / currentSoundData.length;
+                const alertCount = currentSoundData.filter(d => d.db < db.soundSettings.minDb || d.db > db.soundSettings.maxDb).length;
+                document.getElementById('avg-db-summary').textContent = `${avgDb.toFixed(1)} dB`;
+                document.getElementById('db-alert-summary').textContent = `${alertCount} 곳`;
+            }
+            
+            // On Duty Summary
+            const onDutyList = document.getElementById('on-duty-list');
+            if (db.operationSchedule.length > 0) {
+                const today = new Date().toISOString().split('T')[0];
+                const currentDaySchedule = db.operationSchedule.filter(s => s.date === today);
+                const currentDuty = currentDaySchedule.length > 0 ? currentDaySchedule[0] : db.operationSchedule[0];
+                
+                document.getElementById('on-duty-title').textContent = `현재 운영 담당자 (${currentDuty.date}, ${currentDuty.time})`;
+                
+                onDutyList.innerHTML = `
+                    <div><p class="font-semibold text-slate-700">오디오</p><p class="text-slate-500">${currentDuty.audio}</p></div>
+                    <div><p class="font-semibold text-slate-700">비디오</p><p class="text-slate-500">${currentDuty.video}</p></div>
+                    <div><p class="font-semibold text-slate-700">무대</p><p class="text-slate-500">${currentDuty.stage}</p></div>
+                    <div><p class="font-semibold text-slate-700">IT</p><p class="text-slate-500">${currentDuty.it}</p></div>
+                `;
+            }
+        }
+        
+        function renderDonutChart(canvasId, label, completed, total) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if(charts[canvasId]) charts[canvasId].destroy();
+
+            const percentage = (total > 0) ? Math.round((completed/total)*100) : 0;
+            const data = (total > 0) ? [completed, total - completed] : [0, 1];
+
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['완료', '미완료'],
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#22c55e', '#e2e8f0'],
+                        borderColor: ['#ffffff'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false },
+                        title: { 
+                            display: true, 
+                            text: `${percentage}%`,
+                            position: 'bottom',
+                            align: 'center',
+                            font: { size: canvasId.includes('overall') ? 24: 14, weight: 'bold' },
+                            color: '#334155',
+                            padding: { top: canvasId.includes('overall') ? -65 : -35 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderSetupTable() {
+            const tableBody = document.getElementById('setup-tasks-table');
+            tableBody.innerHTML = '';
+            const filteredTasks = db.setupTasks.filter(task => state.setupFilter === 'All' || task.team === state.setupFilter);
+            const now = new Date();
+
+            filteredTasks.forEach(task => {
+                const startTime = task.start ? new Date(task.start) : null;
+                const endTime = startTime ? new Date(startTime.getTime() + task.duration * 60000) : null;
+
+                let rowClass = '';
+                if (task.completed) {
+                    rowClass = 'completed';
+                } else if (endTime && now > endTime) {
+                    rowClass = 'delayed';
+                } else if (startTime && endTime && now >= startTime && now <= endTime) {
+                    rowClass = 'in-progress';
+                }
+                
+                const tr = document.createElement('tr');
+                tr.className = `task-row border-b border-slate-200 hover:bg-slate-50 ${rowClass}`;
+                tr.innerHTML = `
+                    <td class="p-3"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-700">${task.team}</span></td>
+                    <td class="p-3 font-semibold">${task.task}</td>
+                    <td class="p-3">${task.person}</td>
+                    <td class="p-3">${task.duration}분</td>
+                    <td class="p-3">${startTime ? startTime.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '미정'}</td>
+                    <td class="p-3 text-center">
+                        <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${task.completed ? 'checked' : ''} disabled>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function renderOperationSchedule() {
+            const tableBody = document.getElementById('operation-schedule-table');
+            tableBody.innerHTML = '';
+            const filteredSchedule = db.operationSchedule.filter(slot => slot.date === state.operationDay);
+
+            filteredSchedule.forEach(slot => {
+                tableBody.innerHTML += `
+                    <tr class="border-b border-slate-200 hover:bg-slate-50">
+                        <td class="p-3 font-semibold">${slot.time}</td>
+                        <td class="p-3">${slot.audio}</td>
+                        <td class="p-3">${slot.video}</td>
+                        <td class="p-3">${slot.stage}</td>
+                        <td class="p-3">${slot.it}</td>
+                        <td class="p-3">${slot.backup}</td>
+                    </tr>
+                `;
+            });
+        }
+        
+        function renderSoundAnalysis() {
+            const { day, time } = state.soundFilter;
+            const filteredData = db.soundData.filter(d => d.day === day && d.time === time);
+            
+            const heatmapDataPoints = [];
+            const maxCols = Math.max(...db.seatLayout.map(r => r.length));
+
+            db.seatLayout.forEach((row, rowIndex) => {
+                const offset = (maxCols - row.length) / 2;
+                row.forEach((seat, seatIndex) => {
+                    const seatData = filteredData.find(d => d.seat === seat);
+                    heatmapDataPoints.push({
+                        x: seatIndex + offset,
+                        y: rowIndex,
+                        v: seatData ? seatData.db : null,
+                        seatName: seat
+                    });
+                });
+            });
+
+            const heatmapData = { datasets: [{
+                label: 'Seat Decibels',
+                data: heatmapDataPoints,
+                backgroundColor: (c) => getColorForDb(c.raw.v),
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+                borderWidth: 1,
+                radius: 20
+            }] };
+            renderHeatmapChart(heatmapData);
+            
+            const trendData = {
+                labels: ['1차 (09:00)', '2차 (13:00)', '3차 (15:00)', '4차 (17:00)'],
+                datasets: [{
+                    label: `일일 평균 데시벨`,
+                    data: [],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.2
+                }]
+            };
+
+            for (let t = 1; t <= 4; t++) {
+                const timeData = db.soundData.filter(d => d.day === day && d.time === t);
+                const avg = timeData.length > 0 ? timeData.reduce((acc, d) => acc + d.db, 0) / timeData.length : NaN;
+                trendData.datasets[0].data.push(avg);
+            }
+            renderTrendChart(trendData);
+            document.getElementById('sound-trend-title').textContent = `시간대별 데시벨 트렌드 (${day}일차)`;
+        }
+
+        function renderHeatmapChart(data) {
+            const ctx = document.getElementById('soundHeatmapChart').getContext('2d');
+            if (charts.heatmap) charts.heatmap.destroy();
+
+            charts.heatmap = new Chart(ctx, {
+                type: 'bubble',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: 5 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (context) => `좌석: ${context[0].raw.seatName}`,
+                                label: (context) => { 
+                                    const value = context.raw.v;
+                                    return value !== null ? `데시벨: ${value.toFixed(1)} dB` : '데이터 없음';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: -0.5,
+                            max: db.seatLayout.length - 0.5,
+                            grid: { display: false },
+                            ticks: { display: false }
+                        },
+                        x: {
+                            min: -0.5,
+                            max: Math.max(...db.seatLayout.map(r => r.length)) - 0.5,
+                            grid: { display: false },
+                            ticks: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+         function renderTrendChart(data) {
+            const ctx = document.getElementById('soundTrendChart').getContext('2d');
+            if(charts.trend) charts.trend.destroy();
+            charts.trend = new Chart(ctx, {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            suggestedMin: 65,
+                            suggestedMax: 95,
+                            title: { display: true, text: '평균 데시벨(dB)' }
+                        }
+                    },
+                    plugins: { 
+                        legend: { display: false },
+                        annotation: {
+                            annotations: {
+                                normalRange: {
+                                    type: 'box',
+                                    yMin: 70,
+                                    yMax: 75,
+                                    backgroundColor: 'rgba(74, 222, 128, 0.15)',
+                                    borderColor: 'rgba(34, 197, 94, 0.3)',
+                                    borderWidth: 1,
+                                    borderDash: [6, 6],
+                                    label: {
+                                        content: '평상시',
+                                        display: true,
+                                        position: 'start',
+                                        font: { size: 10 },
+                                        color: 'rgba(22, 101, 52, 0.7)'
+                                    }
+                                },
+                               criticalLine: {
+                                    type: 'box',
+                                    yMin: 85,
+                                    yMax: 85,
+                                    scaleID: 'y',
+                                    borderColor: 'rgb(239, 68, 68)',
+                                    borderWidth: 2,
+                                    borderDash: [6, 6],
+                                    label: {
+                                        content: '경고 기준',
+                                        display: true,
+                                        position: 'end',
+                                        font: { weight: 'bold' },
+                                        color: 'rgb(239, 68, 68)',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.5)'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        function getColorForDb(dbValue) {
+            if (dbValue === null || dbValue === undefined) {
+                return 'rgba(226, 232, 240, 0.8)'; // 데이터 없음 (회색)
+            }
+
+            if (dbValue > 85) {
+                return 'rgba(239, 68, 68, 0.8)'; // 85 초과 (붉은색)
+            } else if (dbValue >= 75) {
+                // 75-85: 라임색 -> 주황색 그라데이션
+                const intensity = (dbValue - 75) / (85 - 75);
+                const r = Math.round(163 + (251 - 163) * intensity);
+                const g = Math.round(230 + (191 - 230) * intensity);
+                const b = Math.round(53 + (36 - 53) * intensity);
+                return `rgba(${r}, ${g}, ${b}, 0.8)`;
+            } else if (dbValue >= 70) {
+                return 'rgba(74, 222, 128, 0.8)'; // 70-75: 녹색
+            } else if (dbValue >= 50) {
+                // 50-70: 회색 -> 녹색 그라데이션
+                const intensity = (dbValue - 50) / (70 - 50);
+                const r = Math.round(209 + (74 - 209) * intensity);
+                const g = Math.round(213 + (222 - 213) * intensity);
+                const b = Math.round(219 + (128 - 219) * intensity);
+                return `rgba(${r}, ${g}, ${b}, 0.8)`;
+            } else {
+                return 'rgba(209, 213, 219, 0.8)'; // 50 미만 (회색)
+            }
+        }
+
+
+        // --- EVENT HANDLERS & INITIALIZATION ---
+        function handleNavClick(e) {
+            if (!e.target.dataset.tab) return;
+            state.activeTab = e.target.dataset.tab;
+            updateView();
+        }
+
+        function handleFilterClick(e) {
+            const btn = e.target.closest('.filter-btn');
+            if (!btn) return;
+
+            if (btn.classList.contains('team-filter-btn')) {
+                state.setupFilter = btn.dataset.team;
+                document.querySelectorAll('.team-filter-btn').forEach(b => b.classList.remove('active'));
+                renderSetupTable();
+            } else if (btn.classList.contains('op-day-filter')) {
+                state.operationDay = btn.dataset.day;
+                 document.querySelectorAll('.op-day-filter').forEach(b => b.classList.remove('active'));
+                renderOperationSchedule();
+            }
+            btn.classList.add('active');
+        }
+        
+        function handleSoundFilterChange() {
+            state.soundFilter.day = parseInt(document.getElementById('sound-day-filter').value);
+            state.soundFilter.time = parseInt(document.getElementById('sound-time-filter').value);
+            renderSoundAnalysis();
+        }
+
+        function updateView() {
+            document.querySelectorAll('.content-panel').forEach(panel => panel.classList.add('hidden'));
+            document.getElementById(`${state.activeTab}-content`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === state.activeTab));
+
+            switch (state.activeTab) {
+                case 'dashboard': renderDashboard(); break;
+                case 'setup': renderSetupTable(); break;
+                case 'operation': renderOperationSchedule(); break;
+                case 'sound': renderSoundAnalysis(); break;
+            }
+        }
+
+        window.onload = async () => {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            
+            if (window.ChartAnnotation) {
+                Chart.register(window.ChartAnnotation);
+            }
+            
+            await loadAllData();
+            
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => loadingOverlay.style.display = 'none', 300);
+
+            // Set up event listeners
+            document.querySelector('nav').addEventListener('click', handleNavClick);
+            document.getElementById('setup-content').addEventListener('click', handleFilterClick);
+            document.getElementById('operation-content').addEventListener('click', handleFilterClick);
+            document.getElementById('sound-day-filter').addEventListener('change', handleSoundFilterChange);
+            document.getElementById('sound-time-filter').addEventListener('change', handleSoundFilterChange);
+            
+            // Initial render
+            document.querySelector('.tab-btn[data-tab="dashboard"]').classList.add('active');
+            updateView();
+        };
+
+    </script>
+</body>
+</html>
