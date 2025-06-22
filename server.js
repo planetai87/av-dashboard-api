@@ -9,8 +9,8 @@ const SPREADSHEET_ID = '1O5Ir42pvFjlul4Zuz3N13qmyKM0ez8ss_dvdVFveG50'; // Google
 
 // Google 인증 설정
 const auth = new google.auth.GoogleAuth({
-    keyFile: 'credentials.json', // 로컬 테스트용
-    // credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS), // Railway 배포용
+    // keyFile: 'credentials.json', // 로컬 테스트용
+    credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS), // Railway 배포용
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
