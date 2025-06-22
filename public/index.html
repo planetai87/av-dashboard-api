@@ -337,11 +337,23 @@
                 delayedTasksList.innerHTML = `<p class="text-slate-500">지연된 작업이 없습니다.</p>`;
             }
             
-            // Sound Summary
-            const currentSoundData = db.soundData.filter(d => d.day === state.soundFilter.day && d.time === state.soundFilter.time);
-            if (currentSoundData.length > 0) {
-                const avgDb = currentSoundData.reduce((acc, d) => acc + d.db, 0) / currentSoundData.length;
-                const alertCount = currentSoundData.filter(d => d.db < db.soundSettings.minDb || d.db > db.soundSettings.maxDb).length;
+           // Sound Summary (Dynamic based on current date)
+            const today = new Date();
+            const competitionDates = ["2025-07-04", "2025-07-05", "2025-07-06"];
+            const todayStr = today.toISOString().split('T')[0];
+            
+            let dayToDisplay = 1; // 기본값은 1일차
+            const dayIndex = competitionDates.indexOf(todayStr);
+            if (dayIndex !== -1) {
+                dayToDisplay = dayIndex + 1;
+            }
+            
+            document.getElementById('sound-summary-title').textContent = `음향 상태 (${dayToDisplay}일차)`;
+
+            const todaysSoundData = db.soundData.filter(d => d.day === dayToDisplay);
+            if (todaysSoundData.length > 0) {
+                const avgDb = todaysSoundData.reduce((acc, d) => acc + d.db, 0) / todaysSoundData.length;
+                const alertCount = todaysSoundData.filter(d => d.db < db.soundSettings.minDb || d.db > db.soundSettings.maxDb).length;
                 document.getElementById('avg-db-summary').textContent = `${avgDb.toFixed(1)} dB`;
                 document.getElementById('db-alert-summary').textContent = `${alertCount} 곳`;
             }
