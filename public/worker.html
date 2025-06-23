@@ -46,7 +46,7 @@
         </header>
 
         <main>
-            <div class="mb-4 flex space-x-2">
+            <div id="team-filter-controls" class="mb-4 flex space-x-2">
                 <button data-team="All" class="filter-btn px-3 py-1 text-sm font-semibold rounded-md active">전체</button>
                 <button data-team="오디오팀" class="filter-btn px-3 py-1 text-sm font-semibold rounded-md">오디오팀</button>
                 <button data-team="비디오팀" class="filter-btn px-3 py-1 text-sm font-semibold rounded-md">비디오팀</button>
@@ -148,7 +148,7 @@
         window.onload = async () => {
             await refreshData();
 
-            document.querySelector('.mb-4').addEventListener('click', (e) => {
+            document.getElementById('team-filter-controls').addEventListener('click', (e) => {
                 const btn = e.target.closest('.filter-btn');
                 if (!btn) return;
                 currentFilter = btn.dataset.team;
