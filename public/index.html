@@ -760,6 +760,15 @@
             setTimeout(() => loadingOverlay.style.display = 'none', 300);
 
             // Set up event listeners
+            document.getElementById('refresh-button').addEventListener('click', async () => {
+                loadingOverlay.style.display = 'flex';
+                loadingOverlay.style.opacity = '1';
+                await loadAllData();
+                updateView();
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => loadingOverlay.style.display = 'none', 300);
+            });
+            
             document.querySelector('nav').addEventListener('click', handleNavClick);
             document.getElementById('setup-content').addEventListener('click', handleFilterClick);
             document.getElementById('operation-content').addEventListener('click', handleFilterClick);
