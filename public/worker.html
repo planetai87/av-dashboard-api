@@ -60,9 +60,12 @@
                             <th class="p-3 w-16 text-center">완료</th>
                             <th class="p-3">작업 항목</th>
                             <th class="p-3">담당자</th>
+                            <th class="p-3">시작 예정</th>
+                            <th class="p-3">완료 목표</th>
                             <th class="p-3">팀</th>
                         </tr>
                     </thead>
+
                     <tbody id="worker-tasks-table">
                         <!-- Tasks will be populated by JS -->
                     </tbody>
@@ -123,18 +126,33 @@
             filteredTasks.forEach(task => {
                 const tr = document.createElement('tr');
                 tr.className = `task-row border-b border-slate-200 ${task.completed ? 'completed' : ''}`;
+
+                // 시작 시간과 완료 목표 시간 계산
+                const startTime = task.start ? new Date(task.start.replace(/\s/g, 'T')) : null;
+                const endTime = startTime && task.duration ? new Date(startTime.getTime() + (parseInt(task.duration) * 60000)) : null;
+
+                // 날짜 포맷팅 옵션
+                const formatOptions = {
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                };
+
                 tr.innerHTML = `
                     <td class="p-4 text-center align-middle">
                         <input type="checkbox" data-task-id="${task.id}" class="h-8 w-8 rounded-lg border-gray-400 text-blue-600 focus:ring-blue-600 focus:ring-2 cursor-pointer" ${task.completed ? 'checked' : ''}>
                     </td>
                     <td class="p-3 font-semibold task-name align-middle">${task.task}</td>
                     <td class="p-3 align-middle">${task.person}</td>
+                    <td class="p-3 align-middle text-sm">${startTime && !isNaN(startTime) ? startTime.toLocaleString('ko-KR', formatOptions) : '미정'}</td>
+                    <td class="p-3 align-middle text-sm">${endTime && !isNaN(endTime) ? endTime.toLocaleString('ko-KR', formatOptions) : '미정'}</td>
                     <td class="p-3 align-middle"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-700">${task.team}</span></td>
                 `;
                 tableBody.appendChild(tr);
             });
         }
-        
         async function refreshData() {
             const loadingOverlay = document.getElementById('loading-overlay');
             loadingOverlay.style.display = 'flex';
