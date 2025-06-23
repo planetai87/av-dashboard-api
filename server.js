@@ -13,9 +13,9 @@ const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE'; // Google Sheet 문서 URL에
 // Google 인증 설정
 const auth = new google.auth.GoogleAuth({
     // 로컬 테스트 시에는 credentials.json 파일을 사용합니다.
-    keyFile: 'credentials.json',
+    // keyFile: 'credentials.json',
     // Railway 배포 시에는 환경 변수를 사용합니다.
-    // credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS), 
+    credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS), 
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
