@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="고양04 AV부 대시보드">
+    <meta name="apple-mobile-web-app-title" content="고양04 AV대시보드">
     <link rel="apple-touch-icon" href="/icons/icon-180x180.png"> 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,7 +51,7 @@
         
         <header class="mb-6 flex justify-between items-center">
             <div>
-                <h1 class="text-3xl font-bold text-slate-900">지역대회 AV팀 통합 관리 대시보드</h1>
+                <h1 class="text-3xl font-bold text-slate-900">고양04 지역대회 AV부 통합 관리 대시보드</h1>
                 <p class="text-slate-600 mt-1">대회 전 사전설치부터 운영까지 모든 현황을 실시간으로 관리합니다.</p>
             </div>
             <button id="refresh-button" class="p-2 rounded-full hover:bg-slate-200 active:bg-slate-300 transition-colors">
@@ -768,7 +768,7 @@
                 loadingOverlay.style.opacity = '0';
                 setTimeout(() => loadingOverlay.style.display = 'none', 300);
             });
-            
+
             document.querySelector('nav').addEventListener('click', handleNavClick);
             document.getElementById('setup-content').addEventListener('click', handleFilterClick);
             document.getElementById('operation-content').addEventListener('click', handleFilterClick);
