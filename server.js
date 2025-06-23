@@ -8,7 +8,7 @@ const port = process.env.PORT || 3000;
 // JSON 요청 본문을 파싱하기 위해 미들웨어를 추가합니다.
 app.use(express.json());
 
-const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE'; // Google Sheet 문서 URL에서 ID 부분
+const SPREADSHEET_ID = '1O5Ir42pvFjlul4Zuz3N13qmyKM0ez8ss_dvdVFveG50'; // Google Sheet 문서 URL에서 ID 부분
 
 // Google 인증 설정
 const auth = new google.auth.GoogleAuth({
