@@ -99,6 +99,71 @@ app.post('/api/updateTask', async (req, res) => {
     }
 });
 
+//음향평가 라우터 추가
+app.get("/api2/white-bc-values", async (req, res) => {
+  try {
+    const sheets = google.sheets({ version: "v4", auth });
+
+    const spreadsheetId = "1KilEm9Mr-AITP9pmBao_B5X1aIn8mdGjnEGZi_vzN_U";
+    const dayMap = {
+      "첫째날 정량평가": 1,
+      "둘째날 정량평가": 2,
+      "셋째날 정량평가": 3,
+    };
+
+    const result = [];
+
+    for (const [sheetName, day] of Object.entries(dayMap)) {
+      const range = `${sheetName}!B12:P43`;
+      const response = await sheets.spreadsheets.get({
+        spreadsheetId,
+        ranges: [range],
+        includeGridData: true,
+      });
+
+      const rows = response.data.sheets?.[0]?.data?.[0]?.rowData || [];
+      let count = 1;
+
+      for (const row of rows) {
+        const values = row.values || [];
+        const timeLabel = values[0]?.formattedValue; // B열
+        const dCell = values[2]; // D열 배경색 판별 기준
+
+        if (!timeLabel || !dCell) continue;
+
+        const bg = dCell.effectiveFormat?.backgroundColor;
+        const r = Math.round((bg?.red ?? 0) * 255);
+        const g = Math.round((bg?.green ?? 0) * 255);
+        const b = Math.round((bg?.blue ?? 0) * 255);
+
+        const isWhite = r === 255 && g === 255 && b === 255;
+        if (!isWhite) continue;
+
+        const time = `${count}차 (${timeLabel})`;
+        count++;
+
+        for (let i = 2; i <= 14; i++) {
+          const dbCell = values[i];
+          const dbVal = parseFloat(dbCell?.formattedValue);
+          if (!isNaN(dbVal)) {
+            result.push({
+              day,
+              time,
+              seat: String(i - 1), // D열(i=2) → seat: "1"
+              db: dbVal,
+            });
+          }
+        }
+      }
+    }
+
+    console.log(result);
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error fetching white-bc-values:", err);
+    res.status(500).json({ error: "Failed to fetch data" });
+  }
+});
 
 // 프론트엔드 파일 제공
 app.use(express.static(path.join(__dirname, 'public')));
