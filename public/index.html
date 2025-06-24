@@ -1077,20 +1077,20 @@
           return "rgba(226, 232, 240, 0.8)"; // Gray for no data
         }
 
-        if (dbValue > 80) {
-          return "rgba(239, 68, 68, 0.8)"; // 80 초과 (붉은색)
+        if (dbValue > 85) {
+          return "rgba(239, 68, 68, 0.8)"; // 85 초과 (붉은색)
         } else if (dbValue >= 75) {
-          // 75-80: 라임색 -> 주황색 그라데이션
-          const intensity = (dbValue - 75) / (80 - 75);
+          // 75-85: 라임색 -> 주황색 그라데이션
+          const intensity = (dbValue - 75) / (85 - 75);
           const r = Math.round(163 + (251 - 163) * intensity);
           const g = Math.round(230 + (191 - 230) * intensity);
           const b = Math.round(53 + (36 - 53) * intensity);
           return `rgba(${r}, ${g}, ${b}, 0.8)`;
-        } else if (dbValue >= 75) {
-          return "rgba(74, 222, 128, 0.8)"; // 65-75: 녹색
-        } else if (dbValue >= 65) {
-          // 50-65: 회색 -> 녹색 그라데이션
-          const intensity = (dbValue - 50) / (65 - 50);
+        } else if (dbValue >= 70) {
+          return "rgba(74, 222, 128, 0.8)"; // 70-75: 녹색
+        } else if (dbValue >= 50) {
+          // 50-70: 회색 -> 녹색 그라데이션
+          const intensity = (dbValue - 50) / (70 - 50);
           const r = Math.round(209 + (74 - 209) * intensity);
           const g = Math.round(213 + (222 - 213) * intensity);
           const b = Math.round(219 + (128 - 219) * intensity);
