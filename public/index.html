@@ -225,7 +225,7 @@
               </div>
             </div>
           </div>
-         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
             <div class="bg-white p-6 rounded-lg shadow-sm">
               <h3 id="sound-summary-title" class="font-bold text-slate-800">
                 음향 상태
@@ -238,7 +238,7 @@
                   >
                     N/A
                   </p>
-                  <p class="text-sm text-slate-500 text-center">평균 데시벨</p>
+                  <p class="text-sm text-slate-500 text-center">현재 평균</p>
                 </div>
                 <div>
                   <p
@@ -247,8 +247,19 @@
                   >
                     N/A
                   </p>
-                  <p class="text-sm text-slate-500 text-center">경고 구역</p>
+                  <p class="text-sm text-slate-500 text-center">현재 경고</p>
                 </div>
+              </div>
+              <div class="mt-6 text-center">
+                <p class="text-lg font-semibold text-slate-700">
+                  일일 전체 평균
+                </p>
+                <p
+                  class="text-2xl font-bold text-emerald-600"
+                  id="daily-avg-summary"
+                >
+                  N/A
+                </p>
               </div>
             </div>
             <div class="bg-white p-6 rounded-lg shadow-sm md:col-span-2">
@@ -265,7 +276,6 @@
           </div>
         </div>
 
-                 
         <!-- Pre-Setup Content -->
         <div id="setup-content" class="content-panel hidden">
           <div class="mb-6">
@@ -595,55 +605,102 @@
 
         // --- ▼▼▼ 이 부분이 수정되었습니다 ▼▼▼ ---
         // Determine which day's summary to show
-        const today = new Date();
-        const competitionDates = ["2025-07-04", "2025-07-05", "2025-07-06"];
-        const todayStr = today.toISOString().split("T")[0];
+        // --- ▼▼▼ 날짜 매핑 및 현재 시점과 가장 가까운 그룹 판단 ▼▼▼ ---
+        const competitionDateMap = {
+          1: "2025-07-04",
+          2: "2025-07-05",
+          3: "2025-07-06",
+        };
+        // 사운드 데이터 중, 날짜+시간 기준으로 가장 가까운 그룹 찾기
+        let closestDataGroup = [];
+        let dayToDisplay = 1;
+        let minDiff = Infinity;
 
-        let dateToShowStr;
-        let dayToDisplay;
+        const dateToShowStr = competitionDateMap[dayToDisplay]; // ✅ 이 줄 추가
+        const competitionDates = Object.values(competitionDateMap); // ✅ 이 줄 추가
 
-        const dayIndex = competitionDates.indexOf(todayStr);
+        for (const [dayStr, dateStr] of Object.entries(competitionDateMap)) {
+          const thisDay = parseInt(dayStr);
+          const dateBase = new Date(dateStr); // 기준 날짜
 
-        if (dayIndex !== -1) {
-          dateToShowStr = todayStr;
-          dayToDisplay = dayIndex + 1;
-        } else {
-          // 오늘이 대회 기간이 아니면, 가장 가까운 대회 날짜를 찾거나 첫날로 설정
-          const todayTime = today.getTime();
-          const firstDayTime = new Date(competitionDates[0]).getTime();
-          if (todayTime < firstDayTime) {
-            dateToShowStr = competitionDates[0]; // 대회 시작 전이면 첫날
-            dayToDisplay = 1;
-          } else {
-            dateToShowStr = competitionDates[competitionDates.length - 1]; // 대회 종료 후면 마지막 날
-            dayToDisplay = competitionDates.length;
+          const dataOfDay = db.soundData.filter((d) => d.day === thisDay);
+          const groupedByTime = {};
+
+          for (const d of dataOfDay) {
+            if (!groupedByTime[d.time]) groupedByTime[d.time] = [];
+            groupedByTime[d.time].push(d);
+          }
+
+          for (const [timeKey, group] of Object.entries(groupedByTime)) {
+            const timeStr = extractTimePart(timeKey);
+            if (!timeStr) continue;
+
+            const parsedTime = parseTimeStringToDate(timeStr);
+            const fullDateTime = new Date(dateBase);
+            fullDateTime.setHours(
+              parsedTime.getHours(),
+              parsedTime.getMinutes()
+            );
+
+            const diff = Math.abs(now - fullDateTime);
+            if (diff < minDiff) {
+              minDiff = diff;
+              dayToDisplay = thisDay;
+              closestDataGroup = group;
+            }
           }
         }
 
-        // Sound Summary
+        // ✅ 로그로 확인
+        console.log("현재 판단된 day:", dayToDisplay);
+        console.log("현재 판단된 시간대 데이터:", closestDataGroup);
+
+        // --- ▼▼▼ 결과 반영 ▼▼▼ ---
         document.getElementById(
           "sound-summary-title"
         ).textContent = `음향 상태 (${dayToDisplay}일차)`;
-        const todaysSoundData = db.soundData.filter(
-          (d) => d.day === dayToDisplay
-        );
-        if (todaysSoundData.length > 0) {
-          const avgDb =
-            todaysSoundData.reduce((acc, d) => acc + d.db, 0) /
-            todaysSoundData.length;
-          const alertCount = todaysSoundData.filter(
-            (d) =>
-              d.db < db.soundSettings.minDb || d.db > db.soundSettings.maxDb
-          ).length;
-          document.getElementById(
-            "avg-db-summary"
-          ).textContent = `${avgDb.toFixed(1)} dB`;
-          document.getElementById(
-            "db-alert-summary"
-          ).textContent = `${alertCount} 곳`;
+
+        // 현재 평균
+        const avgDb =
+          closestDataGroup.reduce((acc, d) => acc + d.db, 0) /
+          (closestDataGroup.length || 1);
+        document.getElementById(
+          "avg-db-summary"
+        ).textContent = `${avgDb.toFixed(1)} dB`;
+
+        // 현재 경고 수
+        const alertCount = closestDataGroup.filter(
+          (d) => d.db < db.soundSettings.minDb || d.db > db.soundSettings.maxDb
+        ).length;
+        document.getElementById(
+          "db-alert-summary"
+        ).textContent = `${alertCount} 곳`;
+
+        // 일일 전체 평균
+        const dailyData = db.soundData.filter((d) => d.day === dayToDisplay);
+        const dailyAvg =
+          dailyData.reduce((acc, d) => acc + d.db, 0) / dailyData.length;
+        document.getElementById(
+          "daily-avg-summary"
+        ).textContent = `${dailyAvg.toFixed(1)} dB`;
+
+        // --- ▼▼▼ 유틸 함수 ▼▼▼ ---
+        function extractTimePart(timeStr) {
+          const match = timeStr.match(/\((오전|오후)\s*\d{1,2}:\d{2}\)/);
+          return match ? match[0].replace(/[()]/g, "") : null;
         }
 
-        // On Duty Summary
+        function parseTimeStringToDate(timeStr) {
+          const [amPm, time] = timeStr.trim().split(" ");
+          let [hour, minute] = time.split(":").map(Number);
+          if (amPm === "오후" && hour !== 12) hour += 12;
+          if (amPm === "오전" && hour === 12) hour = 0;
+          const date = new Date();
+          date.setHours(hour, minute, 0, 0);
+          return date;
+        }
+
+        // --- ▼▼▼ 3. 운영 담당자 표시 ▼▼▼ ---
         const onDutyList = document.getElementById("on-duty-list");
         if (db.operationSchedule.length > 0) {
           const currentDaySchedule = db.operationSchedule.filter(
@@ -652,9 +709,8 @@
           let currentDuty = null;
 
           if (currentDaySchedule.length > 0) {
-            const currentHour = new Date().getHours();
-            // Find the current time slot only if it's the actual competition day
-            if (competitionDates.includes(todayStr)) {
+            const currentHour = now.getHours();
+            if (competitionDates.includes(dateToShowStr)) {
               for (const slot of currentDaySchedule) {
                 const [startHour] = slot.time
                   .split("-")
@@ -664,12 +720,10 @@
                 }
               }
             }
-            // If no current slot is found (e.g., before the first shift, or not a competition day), use the first slot of the day to show
             if (!currentDuty) {
               currentDuty = currentDaySchedule[0];
             }
           } else {
-            // Fallback if no schedule for the day
             currentDuty = db.operationSchedule[0];
           }
 
