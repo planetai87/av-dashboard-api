@@ -704,13 +704,13 @@
         const onDutyList = document.getElementById("on-duty-list");
         if (db.operationSchedule.length > 0) {
           const currentDaySchedule = db.operationSchedule.filter(
-            (s) => s.date === dateToShowStr
+            (s) => s.date === dayToDisplay
           );
           let currentDuty = null;
 
           if (currentDaySchedule.length > 0) {
             const currentHour = now.getHours();
-            if (competitionDates.includes(dateToShowStr)) {
+            if (competitionDates.includes(dayToDisplay)) {
               for (const slot of currentDaySchedule) {
                 const [startHour] = slot.time
                   .split("-")
