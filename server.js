@@ -104,7 +104,7 @@ app.get("/api2/white-bc-values", async (req, res) => {
   try {
     const sheets = google.sheets({ version: "v4", auth });
 
-    const spreadsheetId = "1KilEm9Mr-AITP9pmBao_B5X1aIn8mdGjnEGZi_vzN_U";
+    const spreadsheetId = "18daZAEoIerMbLZitP7vEH_87_NcvB2vVZQb8Yx0ZSEY";
     const dayMap = {
       "첫째날 정량평가": 1,
       "둘째날 정량평가": 2,
