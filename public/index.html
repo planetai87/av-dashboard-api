@@ -581,7 +581,7 @@
         }
 
         // === 지연된 작업 표시 ===
-        const now = new Date("2025-07-05T13:00:00+09:00");
+        const now = new Date();
         const delayedTasksList = document.getElementById("delayed-tasks-list");
         delayedTasksList.innerHTML = "";
         const delayedTasks = db.setupTasks.filter((task) => {
