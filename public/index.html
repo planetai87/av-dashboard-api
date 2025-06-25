@@ -831,11 +831,26 @@
                 position: "bottom",
                 align: "center",
                 font: {
-                  size: canvasId.includes("overall") ? 24 : 14,
-                  weight: "bold",
+                  size:
+                    window.innerWidth <= 768
+                      ? canvasId.includes("overall")
+                        ? 24
+                        : 24 // 모바일에서 더 큼
+                      : canvasId.includes("overall")
+                      ? 24
+                      : 14,
                 },
                 color: "#334155",
-                padding: { top: canvasId.includes("overall") ? -65 : -35 },
+                padding: {
+                  top:
+                    window.innerWidth <= 768
+                      ? canvasId.includes("overall")
+                        ? -55
+                        : -70
+                      : canvasId.includes("overall")
+                      ? -65
+                      : -35,
+                },
               },
             },
           },
