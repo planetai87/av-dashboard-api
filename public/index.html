@@ -723,6 +723,51 @@
         }
       }
 
+      function renderDonutChart(canvasId, label, completed, total) {
+        const ctx = document.getElementById(canvasId).getContext("2d");
+        if (charts[canvasId]) charts[canvasId].destroy();
+
+        const percentage =
+          total > 0 ? Math.round((completed / total) * 100) : 0;
+        const data = total > 0 ? [completed, total - completed] : [0, 1];
+
+        charts[canvasId] = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: ["완료", "미완료"],
+            datasets: [
+              {
+                data: data,
+                backgroundColor: ["#22c55e", "#e2e8f0"],
+                borderColor: ["#ffffff"],
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "70%",
+            plugins: {
+              legend: { display: false },
+              tooltip: { enabled: false },
+              title: {
+                display: true,
+                text: `${percentage}%`,
+                position: "bottom",
+                align: "center",
+                font: {
+                  size: canvasId.includes("overall") ? 24 : 14,
+                  weight: "bold",
+                },
+                color: "#334155",
+                padding: { top: canvasId.includes("overall") ? -65 : -35 },
+              },
+            },
+          },
+        });
+      }
+
       function renderSetupTable() {
         const tableBody = document.getElementById("setup-tasks-table");
         tableBody.innerHTML = "";
