@@ -1044,43 +1044,43 @@
           .getContext("2d");
         if (charts.heatmap) charts.heatmap.destroy();
 
-        charts.heatmap = new Chart(ctx, {
-          type: "bubble",
-          data: data,
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: { padding: 5 },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  title: (context) => `좌석: ${context[0].raw.seatName}`,
-                  label: (context) => {
-                    const value = context.raw.v;
-                    return value !== null
-                      ? `데시벨: ${value.toFixed(1)} dB`
-                      : "데이터 없음";
-                  },
-                },
-              },
-            },
-            scales: {
-              y: {
-                min: -0.5,
-                max: db.seatLayout.length - 0.5,
-                grid: { display: false },
-                ticks: { display: false },
-              },
-              x: {
-                min: -0.5,
-                max: Math.max(...db.seatLayout.map((r) => r.length)) - 0.5,
-                grid: { display: false },
-                ticks: { display: false },
-              },
-            },
-          },
-        });
+        const maxCols = Math.max(...db.seatLayout.map(r => r.length));
+
+            charts.heatmap = new Chart(ctx, {
+                type: 'bubble',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: 5 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (context) => `좌석: ${context[0].raw.seatName}`,
+                                label: (context) => { 
+                                    const value = context.raw.v;
+                                    return value !== null ? `데시벨: ${value.toFixed(1)} dB` : '데이터 없음';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: -0.5,
+                            max: db.seatLayout.length - 0.5, // Y축 범위는 그대로 유지
+                            grid: { display: false },
+                            ticks: { display: false }
+                        },
+                        x: {
+                            min: -0.5,
+                            max: maxCols - 0.5, // X축 범위를 가장 긴 줄에 맞게 고정
+                            grid: { display: false },
+                            ticks: { display: false }
+                        }
+                    }
+                }
+            });
       }
 
       function renderTrendChart(data) {
