@@ -543,7 +543,7 @@
         soundData: [],
         soundSettings: { minDb: 65, maxDb: 80 },
         seatLayout: [
-          ["11", "12", "13"],
+          ["11", null, "12", null, "13"],
           ["6", "7", "8", "9", "10"],
           ["1", "2", "3", "4", "5"],
         ],
@@ -984,13 +984,15 @@
         db.seatLayout.forEach((row, rowIndex) => {
           const offset = (maxCols - row.length) / 2;
           row.forEach((seat, seatIndex) => {
-            const seatData = filteredData.find((d) => d.seat === seat);
-            heatmapDataPoints.push({
-              x: seatIndex + offset,
-              y: rowIndex,
-              v: seatData ? seatData.db : null,
-              seatName: seat,
-            });
+                    // seat 값이 null이 아닐 경우에만 데이터 포인트를 생성합니다.
+                    if (seat) { 
+                        const seatData = filteredData.find(d => d.seat === seat);
+                        heatmapDataPoints.push({
+                            x: seatIndex, // 배열의 인덱스를 x좌표로 바로 사용합니다.
+                            y: rowIndex,
+                            v: seatData ? seatData.db : null,
+                            seatName: seat
+                        });
           });
         });
 
