@@ -981,9 +981,8 @@
         const heatmapDataPoints = [];
         const maxCols = Math.max(...db.seatLayout.map((r) => r.length));
 
-        db.seatLayout.forEach((row, rowIndex) => {
-          const offset = (maxCols - row.length) / 2;
-          row.forEach((seat, seatIndex) => {
+            db.seatLayout.forEach((row, rowIndex) => {
+                row.forEach((seat, seatIndex) => {
                     // seat 값이 null이 아닐 경우에만 데이터 포인트를 생성합니다.
                     if (seat) { 
                         const seatData = filteredData.find(d => d.seat === seat);
@@ -993,9 +992,10 @@
                             v: seatData ? seatData.db : null,
                             seatName: seat
                         });
-          });
-        });
-
+                    }
+                });
+            });
+            
         const heatmapData = {
           datasets: [
             {
