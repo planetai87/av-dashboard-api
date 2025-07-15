@@ -31,27 +31,21 @@
         overflow: hidden;
         z-index: 1;
     }
-    
-    /* --- 수정된 부분 --- */
-    .memory-item {
-        font-family: 'Nanum Myeongjo', serif;
-        position: absolute;
-        color: rgba(200, 200, 200, 0.4);
-        font-size: 1.5rem;
-        filter: blur(2px);
-        white-space: nowrap;
-        /* 새로운 '둥실둥실' 애니메이션을 적용합니다. */
-        animation: float-around 25s infinite ease-in-out alternate;
-    }
 
-    /* 새로운 '둥실둥실' 애니메이션 키프레임 */
-    @keyframes float-around {
-        0% {
-            transform: translate(-5px, -10px);
-        }
-        100% {
-            transform: translate(10px, 5px);
-        }
+    /* --- 진단을 위해 스타일을 극도로 단순화 --- */
+    .memory-item {
+        position: absolute; /* 위치 지정을 위해 필수 */
+        color: white;       /* 잘 보이도록 흰색으로 변경 */
+        font-size: 20px;    /* 잘 보이도록 크기 고정 */
+        font-family: 'Nanum Myeongjo', serif;
+        
+        /* 문제가 되는지 확인하기 위해 애니메이션, 필터 등을 모두 제거합니다. */
+
+        /* 눈에 잘 띄도록 빨간색 테두리를 추가합니다. */
+        border: 2px solid red;
+        padding: 5px;
+        background-color: black; /* 배경색 추가 */
+        z-index: 9999; /* 다른 요소에 가려지지 않도록 최상단으로 올립니다. */
     }
     /* --- 여기까지 수정 --- */
 
@@ -140,23 +134,26 @@
     }
 
 function renderMemories(memories) {
-    console.log(`[클라이언트] ${memories.length}개의 기억을 화면에 그립니다.`);
+    console.log(`[진단] ${memories.length}개의 기억을 화면에 그립니다.`);
     memoryBackground.innerHTML = '';
-    memories.forEach(memory => {
+    
+    memories.forEach((memory, index) => {
         const item = document.createElement('div');
         item.className = 'memory-item';
-        item.textContent = memory.text;
+        item.textContent = `${index + 1}: ${memory.text}`; // 순번을 붙여서 내용을 확인
         
-        // --- 수정된 부분 ---
-        // 초기 위치를 화면 안으로 무작위 설정
-        item.style.top = `${5 + Math.random() * 85}vh`;
-        item.style.left = `${5 + Math.random() * 85}vw`;
-        // 애니메이션 시작 시간을 다르게 하여 움직임을 다양하게 만듭니다.
-        item.style.animationDelay = `${Math.random() * -25}s`;
+        // --- 위치를 고정하여 스타일 문제를 배제합니다 ---
+        // 각 아이템을 50px 간격으로 위에서부터 아래로 나열합니다.
+        item.style.top = `${10 + (index * 50)}px`;
+        item.style.left = '10px';
         // --- 여기까지 수정 ---
 
         memoryBackground.appendChild(item);
     });
+
+    if (memories.length > 0) {
+        console.log('[진단] DOM에 아이템 추가 완료. 화면에 빨간 테두리 상자가 보여야 합니다.');
+    }
 }
 
     async function submitMemory() {
