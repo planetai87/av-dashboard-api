@@ -75,7 +75,7 @@
     
     <div id="page-container">
         <div class="title-container">
-            <h1>우리의 기억들</h1>
+            <h1>고양04 AV / 우리의 기억들</h1>
         </div>
         <div id="memory-background" class="memory-background"></div>
     </div>
@@ -117,7 +117,10 @@
             });
         }
 
-        window.onload = loadMemories;
+        window.onload = () => {
+            loadMemories();
+            setInterval(loadMemories, 30000);
+        };
     </script>
 </body>
 </html>
