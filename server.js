@@ -98,7 +98,7 @@ app.post('/api/updateTask', async (req, res) => {
         res.status(500).send('Error updating task status');
     }
 });
-// 'memory' 탭 데이터 읽기 API (최종 완성본)
+// 'memory' 탭 데이터 읽기 API (최종 진짜 완성본)
 app.get('/api/memory', async (req, res) => {
     try {
         const sheets = await getSheetsClient();
@@ -109,8 +109,7 @@ app.get('/api/memory', async (req, res) => {
 
         const rows = response.data.values;
         if (rows && rows.length > 0) {
-            // 각 row[0]를 { text: ... } 객체로 매핑하는 것을 보장합니다.
-            // 비어있는 행이나 텍스트가 없는 경우를 확실하게 필터링합니다.
+            // 여기가 문제입니다! 'test'가 아닌 'text'로 수정합니다.
             const memories = rows
                 .map(row => (row && row[0] ? { text: row[0].trim() } : null))
                 .filter(m => m && m.text);
