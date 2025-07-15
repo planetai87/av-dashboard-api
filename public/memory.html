@@ -29,19 +29,24 @@
             width: 100%; height: 100%;
             overflow: hidden; z-index: 1;
         }
-        .memory-item {
-            font-family: 'Nanum Myeongjo', serif;
-            position: absolute;
-            color: rgba(200, 200, 200, 0.4);
-            font-size: 1.5rem;
-            filter: blur(2px);
-            white-space: nowrap;
-            animation: float-around 25s infinite ease-in-out alternate;
-        }
-        @keyframes float-around {
-            0% { transform: translate(-5px, -10px); }
-            100% { transform: translate(10px, 5px); }
-        }
+    /* --- 여기가 핵심: 원래의 '흐르는' 애니메이션으로 복원 --- */
+    .memory-item {
+        font-family: 'Nanum Myeongjo', serif;
+        position: absolute;
+        color: rgba(200, 200, 200, 0.4);
+        font-size: 1.5rem;
+        filter: blur(2px);
+        white-space: nowrap;
+        /* 'float-around'를 원래의 'float'으로 변경 */
+        animation: float 25s infinite linear;
+    }
+
+    /* 화면을 가로질러 흐르는 키프레임으로 복원 */
+    @keyframes float {
+        0% { transform: translateX(100vw); }
+        100% { transform: translateX(-100%); }
+    }
+    /* --- 여기까지 수정 --- */
         .main-content {
             position: relative; z-index: 10;
             background-color: rgba(45, 55, 72, 0.8);
@@ -119,20 +124,25 @@
             }
         }
 
-        function renderMemories(memories) {
-            memoryBackground.innerHTML = '';
-            memories.forEach((memory, index) => {
-                if (memory && memory.text) {
-                    const item = document.createElement('div');
-                    item.className = 'memory-item';
-                    item.textContent = memory.text;
-                    item.style.top = `${5 + Math.random() * 85}vh`;
-                    item.style.left = `${5 + Math.random() * 85}vw`;
-                    item.style.animationDelay = `${Math.random() * -25}s`;
-                    memoryBackground.appendChild(item);
-                }
-            });
+function renderMemories(memories) {
+    memoryBackground.innerHTML = '';
+    memories.forEach((memory, index) => {
+        if (memory && memory.text) {
+            const item = document.createElement('div');
+            item.className = 'memory-item';
+            item.textContent = memory.text;
+            
+            // --- 여기가 핵심: left 속성 제거 ---
+            // 수직(top) 위치와 글자 크기, 애니메이션 속도만 무작위로 설정합니다.
+            item.style.top = `${5 + Math.random() * 85}vh`;
+            item.style.fontSize = `${1 + Math.random() * 1}rem`;
+            item.style.animationDuration = `${20 + Math.random() * 20}s`; // 속도 다양화
+            item.style.animationDelay = `${Math.random() * -40}s`;
+            
+            memoryBackground.appendChild(item);
         }
+    });
+}
 
         async function submitMemory() {
             const text = memoryInput.value.trim();
