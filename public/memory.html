@@ -47,14 +47,11 @@
         .main-content {
             position: relative;
             z-index: 10;
-            background-color: rgba(45, 55, 72, 0.6); /* 투명도 살짝 조정 */
+            background-color: rgba(45, 55, 72, 0.8);
             padding: 2rem;
             border-radius: 1rem;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            /* --- 블러 효과 추가 --- */
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px); /* for Safari */
-            border: 1px solid rgba(255, 255, 255, 0.1); /* 은은한 테두리 추가 */
+            backdrop-filter: blur(10px);
             max-width: 600px;
             width: 90%;
             text-align: center;
@@ -97,75 +94,78 @@
     </div>
 
     <script>
-        const memoryInput = document.getElementById('memory-input');
-        const submitBtn = document.getElementById('submit-memory-btn');
-        const memoryBackground = document.getElementById('memory-background');
-        const loadingOverlay = document.getElementById('loading-overlay');
+    const memoryInput = document.getElementById('memory-input');
+    const submitBtn = document.getElementById('submit-memory-btn');
+    const memoryBackground = document.getElementById('memory-background');
+    const loadingOverlay = document.getElementById('loading-overlay');
 
-        async function loadMemories() {
-            try {
-                const response = await fetch('/api/memory');
-                if (!response.ok) throw new Error('Failed to fetch memories');
-                const memories = await response.json();
-                renderMemories(memories);
-            } catch (error) {
-                console.error("Error loading memories:", error);
-            } finally {
-                loadingOverlay.style.opacity = '0';
-                setTimeout(() => { loadingOverlay.style.display = 'none'; }, 500);
-            }
+    async function loadMemories() {
+        try {
+            // --- 여기가 핵심! ---
+            // 요청 주소에 현재 시간을 붙여 매번 새로운 주소인 것처럼 만듭니다.
+            const response = await fetch(`/api/memory?t=${new Date().getTime()}`);
+            
+            if (!response.ok) throw new Error('Failed to fetch memories');
+            const memories = await response.json();
+            renderMemories(memories);
+        } catch (error) {
+            console.error("Error loading memories:", error);
+        } finally {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => { loadingOverlay.style.display = 'none'; }, 500);
         }
+    }
 
-        function renderMemories(memories) {
-            memoryBackground.innerHTML = '';
-            memories.forEach(memory => {
-                const item = document.createElement('div');
-                item.className = 'memory-item';
-                item.textContent = memory.text;
-                // Randomize position and animation
-                item.style.top = `${Math.random() * 90}vh`;
-                item.style.fontSize = `${1 + Math.random() * 1.5}rem`;
-                item.style.animationDuration = `${15 + Math.random() * 15}s`;
-                item.style.animationDelay = `-${Math.random() * 30}s`;
-                memoryBackground.appendChild(item);
+    function renderMemories(memories) {
+        memoryBackground.innerHTML = '';
+        memories.forEach(memory => {
+            const item = document.createElement('div');
+            item.className = 'memory-item';
+            item.textContent = memory.text;
+            // Randomize position and animation
+            item.style.top = `${Math.random() * 90}vh`;
+            item.style.fontSize = `${1 + Math.random() * 1.5}rem`;
+            item.style.animationDuration = `${15 + Math.random() * 15}s`;
+            item.style.animationDelay = `-${Math.random() * 30}s`;
+            memoryBackground.appendChild(item);
+        });
+    }
+
+    async function submitMemory() {
+        const text = memoryInput.value.trim();
+        if (!text) return;
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = '저장하는 중...';
+
+        try {
+            const response = await fetch('/api/memory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memory: text })
             });
-        }
 
-        async function submitMemory() {
-            const text = memoryInput.value.trim();
-            if (!text) return;
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = '저장하는 중...';
-
-            try {
-                const response = await fetch('/api/memory', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ memory: text })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to save memory');
-                }
-
-                memoryInput.value = '';
-                // Add new memory to the background immediately for better UX
-                const newMemories = [{ text }];
-                const existingMemories = Array.from(document.querySelectorAll('.memory-item')).map(el => ({text: el.textContent}));
-                renderMemories(newMemories.concat(existingMemories));
-
-            } catch (error) {
-                console.error("Error submitting memory:", error);
-                alert("기록을 저장하는 데 실패했습니다. 잠시 후 다시 시도해주세요.");
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = '기억 남기기';
+            if (!response.ok) {
+                throw new Error('Failed to save memory');
             }
-        }
 
-        window.onload = loadMemories;
-        submitBtn.addEventListener('click', submitMemory);
-    </script>
+            memoryInput.value = '';
+            // Add new memory to the background immediately for better UX
+            const newMemories = [{ text }];
+            const existingMemories = Array.from(document.querySelectorAll('.memory-item')).map(el => ({text: el.textContent}));
+            renderMemories(newMemories.concat(existingMemories));
+
+        } catch (error) {
+            console.error("Error submitting memory:", error);
+            alert("기록을 저장하는 데 실패했습니다. 잠시 후 다시 시도해주세요.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '기억 남기기';
+        }
+    }
+
+    window.onload = loadMemories;
+    submitBtn.addEventListener('click', submitMemory);
+</script>
 </body>
 </html>
