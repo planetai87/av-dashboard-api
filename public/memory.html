@@ -114,34 +114,26 @@
             }
         }
 
-        function renderMemories(memories) {
-            console.log('렌더링할 기억들:', memories);
-            memoryBackground.innerHTML = '';
-            memories.forEach(memory => {
-                                if (!memory || !memory.text) {
-                    console.log('빈 기억 건너뛰기:', memory);
-                    return;
-                }
-                
-                const item = document.createElement('div');
-                item.className = 'memory-item';
-                item.textContent = memory.text;
-                // Randomize position and animation
-                const topPosition = Math.random() * 85; // 85%까지만 사용
-                const animationDuration = 20 + Math.random() * 20; // 20-40초
-                const animationDelay = Math.random() * 10; // 0-10초 딜레이
-                const fontSize = 1.2 + Math.random() * 0.8; // 1.2-2.0rem
-                
-                item.style.top = `${topPosition}vh`;
-                item.style.fontSize = `${fontSize}rem`;
-                item.style.animationDuration = `${animationDuration}s`;
-                item.style.animationDelay = `-${animationDelay}s`;
-                
-                memoryBackground.appendChild(item);
-                console.log(`기억 ${index} 추가됨:`, memory.text.substring(0, 20) + '...');
-            });
-             console.log('총', memories.length, '개의 기억이 렌더링되었습니다.');
+       function renderMemories(memories) {
+    memoryBackground.innerHTML = '';
+    
+    // forEach에 (memory, index) 두 개의 인자를 받도록 수정하여
+    // 'index is not defined' 에러를 해결합니다.
+    memories.forEach((memory, index) => {
+        if (memory && memory.text) {
+            const item = document.createElement('div');
+            item.className = 'memory-item';
+            item.textContent = memory.text;
+            
+            // 원래의 아름다운 무작위 위치 및 애니메이션 스타일을 다시 적용합니다.
+            item.style.top = `${5 + Math.random() * 85}vh`;
+            item.style.left = `${5 + Math.random() * 85}vw`;
+            item.style.animationDelay = `${Math.random() * -25}s`;
+            
+            memoryBackground.appendChild(item);
         }
+    });
+}
 
         async function submitMemory() {
             const text = memoryInput.value.trim();
