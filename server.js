@@ -98,37 +98,32 @@ app.post('/api/updateTask', async (req, res) => {
         res.status(500).send('Error updating task status');
     }
 });
-// --- 'memory' 데이터 읽기 API (진단 코드 추가) ---
+// 'memory' 탭 데이터 읽기 API (최종 완성본)
 app.get('/api/memory', async (req, res) => {
-    console.log('--- [/api/memory] 요청 받음 ---');
     try {
         const sheets = await getSheetsClient();
-        console.log('[서버] Google Sheets 클라이언트 생성 완료.');
-
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: 'memory!A:A',
         });
-        console.log('[서버] Google Sheets API로부터 응답 받음.');
-
-        // Google Sheets에서 받은 원본 데이터를 그대로 출력해봅니다.
-        console.log('[서버] API 원본 데이터:', JSON.stringify(response.data.values, null, 2));
 
         const rows = response.data.values;
         if (rows && rows.length > 0) {
-            const memories = rows.map(row => (row && row[0] ? { text: row[0] } : null)).filter(m => m && m.text);
-            console.log(`[서버] ${memories.length}개의 기억을 처리하여 클라이언트로 전송합니다.`);
+            // 각 row[0]를 { text: ... } 객체로 매핑하는 것을 보장합니다.
+            // 비어있는 행이나 텍스트가 없는 경우를 확실하게 필터링합니다.
+            const memories = rows
+                .map(row => (row && row[0] ? { text: row[0].trim() } : null))
+                .filter(m => m && m.text);
+            
             res.json(memories.reverse());
         } else {
-            console.log('[서버] 시트에서 데이터를 찾지 못했거나 데이터가 비어있어, 빈 배열([])을 전송합니다.');
             res.json([]);
         }
     } catch (error) {
-        console.error('❌ [서버] /api/memory 처리 중 심각한 오류 발생:', error);
+        console.error('❌ /api/memory 처리 중 오류 발생:', error);
         res.status(500).send('Error fetching memories from server');
     }
 });
-
 
 app.post('/api/memory', async (req, res) => {
     try {
