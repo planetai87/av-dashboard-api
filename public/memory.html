@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>고양04 AV부 - 우리의 기억</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,22 +14,20 @@
             background-color: #1a202c;
             color: #e2e8f0;
             overflow: hidden;
+        }
+        /* --- 페이지 전체를 덮는 컨테이너 --- */
+        #page-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-        }
-        #loading-overlay {
-            transition: opacity 0.5s ease;
         }
         .memory-background {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 1;
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            overflow: hidden; z-index: 1;
         }
         .memory-item {
             font-family: 'Nanum Myeongjo', serif;
@@ -37,25 +35,37 @@
             color: rgba(200, 200, 200, 0.4);
             font-size: 1.5rem;
             filter: blur(2px);
-            animation: float 20s infinite linear;
             white-space: nowrap;
+            animation: float-around 25s infinite ease-in-out alternate;
         }
-        @keyframes float {
-            0% { transform: translateX(100vw); }
-            100% { transform: translateX(-100%); }
+        @keyframes float-around {
+            0% { transform: translate(-5px, -10px); }
+            100% { transform: translate(10px, 5px); }
         }
         .main-content {
-            position: relative;
-            z-index: 10;
+            position: relative; z-index: 10;
             background-color: rgba(45, 55, 72, 0.8);
-            padding: 2rem;
-            border-radius: 1rem;
+            padding: 2rem; border-radius: 1rem;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             backdrop-filter: blur(10px);
-            max-width: 600px;
-            width: 90%;
+            max-width: 600px; width: 90%;
             text-align: center;
+
+            /* --- 기본 상태: 숨김 처리 --- */
+            opacity: 0;
+            pointer-events: none; /* 클릭 안 되게 설정 */
+            transform: translateY(20px); /* 살짝 아래에서 나타나는 효과 */
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
         }
+
+        /* --- 상호작용 시: 보임 처리 --- */
+        #page-container:hover .main-content,
+        #page-container.is-active .main-content {
+            opacity: 1;
+            pointer-events: auto; /* 다시 클릭 가능하게 설정 */
+            transform: translateY(0);
+        }
+
         textarea {
             background-color: rgba(26, 32, 44, 0.7);
             border-color: #4a5568;
@@ -66,31 +76,25 @@
             box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.4);
         }
         .submit-btn {
-            background-color: #3b82f6;
-            transition: background-color 0.3s;
+            background-color: #3b82f6; transition: background-color 0.3s;
         }
-        .submit-btn:hover {
-            background-color: #2563eb;
-        }
-        .submit-btn:disabled {
-            background-color: #4a5568;
-            cursor: not-allowed;
-        }
+        .submit-btn:hover { background-color: #2563eb; }
+        .submit-btn:disabled { background-color: #4a5568; cursor: not-allowed; }
     </style>
 </head>
 <body>
     <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
         <p class="text-xl font-semibold text-slate-300">기억들을 불러오는 중...</p>
     </div>
-
-    <div id="memory-background" class="memory-background">
+    
+    <div id="page-container">
+        <div id="memory-background" class="memory-background"></div>
+        <div class="main-content">
+            <h1 class="text-3xl font-bold mb-2" style="font-family: 'Nanum Myeongjo', serif;">우리의 기억</h1>
+            <p class="text-slate-400 mb-6">봉사를 마친 후, 감상이나 질문을 자유롭게 남겨주세요.</p>
+            <textarea id="memory-input" class="w-full h-32 p-3 border rounded-lg text-slate-200 focus:outline-none" placeholder="이곳에 입력하세요..."></textarea>
+            <button id="submit-memory-btn" class="w-full mt-4 px-4 py-2 text-white font-semibold rounded-lg submit-btn">기억 남기기</button>
         </div>
-
-    <div class="main-content">
-        <h1 class="text-3xl font-bold mb-2" style="font-family: 'Nanum Gothic', serif;">우리의 기억</h1>
-        <p class="text-slate-400 mb-6">봉사를 마친 후, 감상이나 질문을 자유롭게 남겨주세요.</p>
-        <textarea id="memory-input" class="w-full h-32 p-3 border rounded-lg text-slate-200 focus:outline-none" placeholder="이곳에 입력하세요..."></textarea>
-        <button id="submit-memory-btn" class="w-full mt-4 px-4 py-2 text-white font-semibold rounded-lg submit-btn">기억 남기기</button>
     </div>
 
     <script>
@@ -98,13 +102,14 @@
         const submitBtn = document.getElementById('submit-memory-btn');
         const memoryBackground = document.getElementById('memory-background');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const pageContainer = document.getElementById('page-container');
+        const mainContent = document.querySelector('.main-content');
 
         async function loadMemories() {
             try {
-                const response = await fetch('/api/memory');
+                const response = await fetch(`/api/memory?t=${new Date().getTime()}`);
                 if (!response.ok) throw new Error('Failed to fetch memories');
                 const memories = await response.json();
-                console.log('받은 기억들:', memories);
                 renderMemories(memories);
             } catch (error) {
                 console.error("Error loading memories:", error);
@@ -114,51 +119,35 @@
             }
         }
 
-       function renderMemories(memories) {
-    memoryBackground.innerHTML = '';
-    
-    // forEach에 (memory, index) 두 개의 인자를 받도록 수정하여
-    // 'index is not defined' 에러를 해결합니다.
-    memories.forEach((memory, index) => {
-        if (memory && memory.text) {
-            const item = document.createElement('div');
-            item.className = 'memory-item';
-            item.textContent = memory.text;
-            
-                // Randomize position and animation
-                item.style.top = `${Math.random() * 90}vh`;
-                item.style.fontSize = `${1 + Math.random() * 1.5}rem`;
-                item.style.animationDuration = `${15 + Math.random() * 15}s`;
-                item.style.animationDelay = `-${Math.random() * 30}s`;
-                memoryBackground.appendChild(item);
+        function renderMemories(memories) {
+            memoryBackground.innerHTML = '';
+            memories.forEach((memory, index) => {
+                if (memory && memory.text) {
+                    const item = document.createElement('div');
+                    item.className = 'memory-item';
+                    item.textContent = memory.text;
+                    item.style.top = `${5 + Math.random() * 85}vh`;
+                    item.style.left = `${5 + Math.random() * 85}vw`;
+                    item.style.animationDelay = `${Math.random() * -25}s`;
+                    memoryBackground.appendChild(item);
+                }
+            });
         }
-    });
-}
 
         async function submitMemory() {
             const text = memoryInput.value.trim();
             if (!text) return;
-
             submitBtn.disabled = true;
             submitBtn.textContent = '저장하는 중...';
-
             try {
                 const response = await fetch('/api/memory', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ memory: text })
                 });
-
-                if (!response.ok) {
-                    throw new Error('Failed to save memory');
-                }
-
+                if (!response.ok) throw new Error('Failed to save memory');
                 memoryInput.value = '';
-                // Add new memory to the background immediately for better UX
-                const newMemories = [{ text }];
-                const existingMemories = Array.from(document.querySelectorAll('.memory-item')).map(el => ({text: el.textContent}));
-                renderMemories(newMemories.concat(existingMemories));
-
+                renderMemories([{ text: text }, ...Array.from(document.querySelectorAll('.memory-item')).map(el => ({ text: el.textContent }))]);
             } catch (error) {
                 console.error("Error submitting memory:", error);
                 alert("기록을 저장하는 데 실패했습니다. 잠시 후 다시 시도해주세요.");
@@ -170,6 +159,18 @@
 
         window.onload = loadMemories;
         submitBtn.addEventListener('click', submitMemory);
+
+        // --- 입력창 보이기/숨기기 로직 ---
+        pageContainer.addEventListener('click', () => {
+            // is-active 클래스가 있으면 제거, 없으면 추가 (토글)
+            pageContainer.classList.toggle('is-active');
+        });
+
+        mainContent.addEventListener('click', (event) => {
+            // 입력창 내부를 클릭했을 때는 배경 클릭으로 전파되지 않도록 막음
+            event.stopPropagation();
+        });
+
     </script>
 </body>
 </html>
