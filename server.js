@@ -229,6 +229,11 @@ app.get('/memory', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'memory.html'));
 });
 
+// 'Memory' 페이지 라우트 (신규 추가)
+app.get('/viewmemory', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'reminiscence.html'));
+});
+
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
 });

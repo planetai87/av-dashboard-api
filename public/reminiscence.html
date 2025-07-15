@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고양04 AV부 - 우리의 기억들</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #1a202c;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+        #page-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column; /* 세로 정렬 */
+            align-items: center;
+            justify-content: center;
+        }
+        .memory-background {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            overflow: hidden; z-index: 1;
+        }
+        .memory-item {
+            font-family: 'Nanum Myeongjo', serif;
+            position: absolute;
+            color: rgba(200, 200, 200, 0.5); /* 약간 더 밝게 */
+            font-size: 1.5rem;
+            filter: blur(1.5px); /* 블러 살짝 조정 */
+            white-space: nowrap;
+            animation: float 25s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateX(100vw); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .title-container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            padding: 2rem;
+            background-color: rgba(26, 32, 44, 0.5); /* 은은한 배경 */
+            border-radius: 0.5rem;
+            backdrop-filter: blur(5px);
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-family: 'Nanum Myeongjo', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
+        <p class="text-xl font-semibold text-slate-300">기억들을 불러오는 중...</p>
+    </div>
+    
+    <div id="page-container">
+        <div class="title-container">
+            <h1>우리의 기억들</h1>
+        </div>
+        <div id="memory-background" class="memory-background"></div>
+    </div>
+
+    <script>
+        const memoryBackground = document.getElementById('memory-background');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        async function loadMemories() {
+            try {
+                const response = await fetch(`/api/memory?t=${new Date().getTime()}`);
+                if (!response.ok) throw new Error('Failed to fetch memories');
+                const memories = await response.json();
+                renderMemories(memories);
+            } catch (error) {
+                console.error("Error loading memories:", error);
+            } finally {
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => { loadingOverlay.style.display = 'none'; }, 500);
+            }
+        }
+
+        function renderMemories(memories) {
+            memoryBackground.innerHTML = '';
+            memories.forEach((memory, index) => {
+                if (memory && memory.text) {
+                    const item = document.createElement('div');
+                    item.className = 'memory-item';
+                    item.textContent = memory.text;
+                    
+                    item.style.top = `${5 + Math.random() * 85}vh`;
+                    item.style.fontSize = `${1 + Math.random() * 1.2}rem`; // 폰트 크기 범위 살짝 조정
+                    item.style.animationDuration = `${25 + Math.random() * 25}s`; // 속도 다양화
+                    item.style.animationDelay = `${Math.random() * -50}s`;
+                    item.style.color = `rgba(200, 200, 200, ${0.3 + Math.random() * 0.4})`; // 투명도 다양화
+                    
+                    memoryBackground.appendChild(item);
+                }
+            });
+        }
+
+        window.onload = loadMemories;
+    </script>
+</body>
+</html>
