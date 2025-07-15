@@ -93,23 +93,35 @@
         <button id="submit-memory-btn" class="w-full mt-4 px-4 py-2 text-white font-semibold rounded-lg submit-btn">기억 남기기</button>
     </div>
 
-    <script>
+   <script>
     const memoryInput = document.getElementById('memory-input');
     const submitBtn = document.getElementById('submit-memory-btn');
     const memoryBackground = document.getElementById('memory-background');
     const loadingOverlay = document.getElementById('loading-overlay');
 
     async function loadMemories() {
+        console.log('[클라이언트] 페이지 로드 시작, 서버에 기억을 요청합니다.');
         try {
-            // --- 여기가 핵심! ---
-            // 요청 주소에 현재 시간을 붙여 매번 새로운 주소인 것처럼 만듭니다.
             const response = await fetch(`/api/memory?t=${new Date().getTime()}`);
-            
-            if (!response.ok) throw new Error('Failed to fetch memories');
+            console.log(`[클라이언트] 서버 응답 상태: ${response.status}`);
+
+            if (!response.ok) {
+                throw new Error(`서버가 응답했으나 오류 발생 (상태 코드: ${response.status})`);
+            }
+
             const memories = await response.json();
+            // 서버에서 받은 데이터를 그대로 출력해봅니다.
+            console.log('[클라이언트] 서버로부터 받은 데이터:', memories);
+
+            if (!Array.isArray(memories)) {
+                throw new Error('서버로부터 받은 데이터가 배열 형식이 아닙니다.');
+            }
+
             renderMemories(memories);
+
         } catch (error) {
-            console.error("Error loading memories:", error);
+            console.error('❌ [클라이언트] 기억을 불러오는 중 오류 발생:', error);
+            alert('기억을 불러오는 데 실패했습니다. 개발자 도구(F12)의 콘솔을 확인해주세요.');
         } finally {
             loadingOverlay.style.opacity = '0';
             setTimeout(() => { loadingOverlay.style.display = 'none'; }, 500);
@@ -117,12 +129,12 @@
     }
 
     function renderMemories(memories) {
+        console.log(`[클라이언트] ${memories.length}개의 기억을 화면에 그립니다.`);
         memoryBackground.innerHTML = '';
         memories.forEach(memory => {
             const item = document.createElement('div');
             item.className = 'memory-item';
             item.textContent = memory.text;
-            // Randomize position and animation
             item.style.top = `${Math.random() * 90}vh`;
             item.style.fontSize = `${1 + Math.random() * 1.5}rem`;
             item.style.animationDuration = `${15 + Math.random() * 15}s`;
@@ -132,29 +144,24 @@
     }
 
     async function submitMemory() {
+        // ... (기존 submitMemory 함수 코드는 변경 없음)
         const text = memoryInput.value.trim();
         if (!text) return;
-
         submitBtn.disabled = true;
         submitBtn.textContent = '저장하는 중...';
-
         try {
             const response = await fetch('/api/memory', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ memory: text })
             });
-
             if (!response.ok) {
                 throw new Error('Failed to save memory');
             }
-
             memoryInput.value = '';
-            // Add new memory to the background immediately for better UX
             const newMemories = [{ text }];
             const existingMemories = Array.from(document.querySelectorAll('.memory-item')).map(el => ({text: el.textContent}));
             renderMemories(newMemories.concat(existingMemories));
-
         } catch (error) {
             console.error("Error submitting memory:", error);
             alert("기록을 저장하는 데 실패했습니다. 잠시 후 다시 시도해주세요.");

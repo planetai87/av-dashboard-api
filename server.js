@@ -98,35 +98,44 @@ app.post('/api/updateTask', async (req, res) => {
         res.status(500).send('Error updating task status');
     }
 });
-// 'memory' 탭 데이터 읽기 API
+// --- 'memory' 데이터 읽기 API (진단 코드 추가) ---
 app.get('/api/memory', async (req, res) => {
+    console.log('--- [/api/memory] 요청 받음 ---');
     try {
         const sheets = await getSheetsClient();
+        console.log('[서버] Google Sheets 클라이언트 생성 완료.');
+
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: 'memory!A:A', // memory 시트의 A열 전체를 읽어옵니다.
+            range: 'memory!A:A',
         });
+        console.log('[서버] Google Sheets API로부터 응답 받음.');
+
+        // Google Sheets에서 받은 원본 데이터를 그대로 출력해봅니다.
+        console.log('[서버] API 원본 데이터:', JSON.stringify(response.data.values, null, 2));
+
         const rows = response.data.values;
-        if (rows) {
-            const memories = rows.map(row => ({ text: row[0] })).filter(m => m.text); // 빈 줄은 제외
-            res.json(memories.reverse()); // 최신순으로 정렬
+        if (rows && rows.length > 0) {
+            const memories = rows.map(row => (row && row[0] ? { text: row[0] } : null)).filter(m => m && m.text);
+            console.log(`[서버] ${memories.length}개의 기억을 처리하여 클라이언트로 전송합니다.`);
+            res.json(memories.reverse());
         } else {
+            console.log('[서버] 시트에서 데이터를 찾지 못했거나 데이터가 비어있어, 빈 배열([])을 전송합니다.');
             res.json([]);
         }
     } catch (error) {
-        console.error('Error fetching memories:', error);
-        res.status(500).send('Error fetching memories');
+        console.error('❌ [서버] /api/memory 처리 중 심각한 오류 발생:', error);
+        res.status(500).send('Error fetching memories from server');
     }
 });
 
-// 'memory' 탭 데이터 쓰기 API
+
 app.post('/api/memory', async (req, res) => {
     try {
         const { memory } = req.body;
         if (!memory || typeof memory !== 'string' || memory.trim() === '') {
             return res.status(400).send('Invalid memory text');
         }
-
         const sheets = await getSheetsClient();
         await sheets.spreadsheets.values.append({
             spreadsheetId: SPREADSHEET_ID,
@@ -136,15 +145,12 @@ app.post('/api/memory', async (req, res) => {
                 values: [[memory.trim()]]
             },
         });
-
         res.status(201).json({ success: true, message: 'Memory added successfully' });
     } catch (error) {
         console.error('Error adding memory:', error);
         res.status(500).send('Error adding memory');
     }
 });
-
-
 // --- 신규 'Memory' 기능 추가 END ---
 //음향평가 라우터 추가
 app.get("/api2/white-bc-values", async (req, res) => {
