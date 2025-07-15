@@ -98,7 +98,54 @@ app.post('/api/updateTask', async (req, res) => {
         res.status(500).send('Error updating task status');
     }
 });
+// 'memory' 탭 데이터 읽기 API
+app.get('/api/memory', async (req, res) => {
+    try {
+        const sheets = await getSheetsClient();
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'memory!A:A', // memory 시트의 A열 전체를 읽어옵니다.
+        });
+        const rows = response.data.values;
+        if (rows) {
+            const memories = rows.map(row => ({ text: row[0] })).filter(m => m.text); // 빈 줄은 제외
+            res.json(memories.reverse()); // 최신순으로 정렬
+        } else {
+            res.json([]);
+        }
+    } catch (error) {
+        console.error('Error fetching memories:', error);
+        res.status(500).send('Error fetching memories');
+    }
+});
 
+// 'memory' 탭 데이터 쓰기 API
+app.post('/api/memory', async (req, res) => {
+    try {
+        const { memory } = req.body;
+        if (!memory || typeof memory !== 'string' || memory.trim() === '') {
+            return res.status(400).send('Invalid memory text');
+        }
+
+        const sheets = await getSheetsClient();
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'memory!A1',
+            valueInputOption: 'USER_ENTERED',
+            resource: {
+                values: [[memory.trim()]]
+            },
+        });
+
+        res.status(201).json({ success: true, message: 'Memory added successfully' });
+    } catch (error) {
+        console.error('Error adding memory:', error);
+        res.status(500).send('Error adding memory');
+    }
+});
+
+
+// --- 신규 'Memory' 기능 추가 END ---
 //음향평가 라우터 추가
 app.get("/api2/white-bc-values", async (req, res) => {
   try {
@@ -175,6 +222,11 @@ app.get('/', (req, res) => {
 // 작업자 페이지 라우트 추가
 app.get('/worker', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'worker.html'));
+});
+
+// 'Memory' 페이지 라우트 (신규 추가)
+app.get('/memory', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'memory.html'));
 });
 
 app.listen(port, () => {
