@@ -64,6 +64,14 @@
             const container = document.getElementById('paper-container');
             container.innerHTML = '';
             
+            // --- 여기가 핵심! ---
+            // memories 배열을 무작위로 섞습니다. (Fisher-Yates Shuffle 알고리즘)
+            for (let i = memories.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [memories[i], memories[j]] = [memories[j], memories[i]];
+            }
+            // --- 여기까지 추가 ---
+
             memories.forEach(memory => {
                 if (memory && memory.text) {
                     const item = document.createElement('div');
