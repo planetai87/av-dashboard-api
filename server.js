@@ -234,6 +234,10 @@ app.get('/viewmemory', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'reminiscence.html'));
 });
 
+app.get('/memoryview', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'memoryview.html'));
+});
+
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
 });

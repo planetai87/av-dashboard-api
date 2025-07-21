@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고양04 AV 우리의 기억</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f1ea; /* 따뜻한 느낌의 배경색 */
+            font-family: 'Gaegu', cursive;
+            color: #333;
+            overflow-x: hidden;
+        }
+        #paper-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .note-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 4px;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.1);
+            width: 250px;
+            min-height: 200px;
+            font-size: 1.25rem;
+            line-height: 1.6;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .note-card:hover {
+            transform: scale(1.05) !important; /* 마우스 올릴 시 확대 (회전값 유지) */
+            box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="paper-container">
+        </div>
+
+    <audio id="bgm" src="/music/bgm.mp3" loop></audio>
+
+    <script>
+        async function loadMemories() {
+            try {
+                const response = await fetch(`/api/memory?t=${new Date().getTime()}`);
+                if (!response.ok) throw new Error('Failed to fetch memories');
+                const memories = await response.json();
+                renderMemories(memories);
+            } catch (error) {
+                console.error("Error loading memories:", error);
+            }
+        }
+
+        function renderMemories(memories) {
+            const container = document.getElementById('paper-container');
+            container.innerHTML = '';
+            
+            memories.forEach(memory => {
+                if (memory && memory.text) {
+                    const item = document.createElement('div');
+                    item.className = 'note-card';
+                    item.textContent = memory.text;
+                    
+                    // 각 메모장에 무작위 회전 각도를 적용합니다.
+                    const rotation = Math.random() * 10 - 5; // -5도에서 +5도 사이
+                    item.style.transform = `rotate(${rotation}deg)`;
+                    
+                    container.appendChild(item);
+                }
+            });
+        }
+        
+        // 브라우저의 자동재생 정책에 따라, 사용자가 페이지를 한번 클릭해야 음악이 재생될 수 있습니다.
+        function playMusic() {
+            const bgm = document.getElementById('bgm');
+            // 볼륨을 적당히 조절합니다. (0.0 ~ 1.0)
+            bgm.volume = 0.3;
+            bgm.play().catch(error => {
+                // 사용자가 상호작용하기 전까지는 자동재생이 안 될 수 있습니다.
+                console.log("배경음악 자동재생이 차단되었습니다. 사용자의 클릭을 기다립니다.", error);
+                document.body.addEventListener('click', () => bgm.play(), { once: true });
+            });
+        }
+
+        window.onload = () => {
+            loadMemories();
+            playMusic();
+        };
+    </script>
+</body>
+</html>
